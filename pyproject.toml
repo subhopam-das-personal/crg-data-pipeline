@@ -1,0 +1,25 @@
+[project]
+name = "data-lineage"
+version = "0.1.0"
+description = "Clinical data quality, governance, and lineage pipeline: FHIR R4 to CDISC SDTM LB"
+authors = [
+    {name = "Subhopam Das", email = "subhopam@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "streamlit>=1.35.0",
+    "duckdb==1.1.3",
+    "openlineage-python>=1.18.0",
+    "pydantic>=2.7.1",
+    "pandas>=2.2.0",
+    "requests>=2.31.0",
+]
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"

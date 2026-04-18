@@ -1,0 +1,28 @@
+services:
+  marquez:
+    image: marquezproject/marquez:0.47.0
+    ports:
+      - "5000:5000"   # OpenLineage API
+      - "3000:3000"   # Marquez UI
+    environment:
+      - MARQUEZ_PORT=5000
+      - MARQUEZ_ADMIN_PORT=5001
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/v1/namespaces"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  app:
+    build: .
+    ports:
+      - "8501:8501"
+    environment:
+      - OPENLINEAGE_URL=http://marquez:5000
+      - MARQUEZ_URL=http://localhost:3000
+    depends_on:
+      marquez:
+        condition: service_healthy
+    volumes:
+      - ./data:/app/data

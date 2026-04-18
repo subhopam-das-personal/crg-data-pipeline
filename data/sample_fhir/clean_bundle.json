@@ -1,0 +1,214 @@
+{
+  "resourceType": "Bundle",
+  "id": "clean-lab-bundle-001",
+  "type": "collection",
+  "entry": [
+    {
+      "resource": {
+        "resourceType": "Patient",
+        "id": "patient-001",
+        "identifier": [{"system": "http://example.org/study", "value": "NCT12345-001"}],
+        "birthDate": "1978-04-12",
+        "gender": "female"
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "id": "obs-001",
+        "status": "final",
+        "code": {"coding": [{"system": "http://loinc.org", "code": "2345-7", "display": "Glucose [Mass/volume] in Serum or Plasma --post 12.5 hours fasting"}]},
+        "subject": {"reference": "Patient/patient-001"},
+        "effectiveDateTime": "2025-01-15T08:30:00Z",
+        "valueQuantity": {"value": 94.5, "unit": "mg/dL", "system": "http://unitsofmeasure.org", "code": "mg/dL"}
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "id": "obs-002",
+        "status": "final",
+        "code": {"coding": [{"system": "http://loinc.org", "code": "718-7", "display": "Hemoglobin [Mass/volume] in Blood"}]},
+        "subject": {"reference": "Patient/patient-001"},
+        "effectiveDateTime": "2025-01-15T08:30:00Z",
+        "valueQuantity": {"value": 13.8, "unit": "g/dL", "system": "http://unitsofmeasure.org", "code": "g/dL"}
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "id": "obs-003",
+        "status": "final",
+        "code": {"coding": [{"system": "http://loinc.org", "code": "2160-0", "display": "Creatinine [Mass/volume] in Serum or Plasma"}]},
+        "subject": {"reference": "Patient/patient-001"},
+        "effectiveDateTime": "2025-01-15T08:30:00Z",
+        "valueQuantity": {"value": 0.85, "unit": "mg/dL", "system": "http://unitsofmeasure.org", "code": "mg/dL"}
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "id": "obs-004",
+        "status": "final",
+        "code": {"coding": [{"system": "http://loinc.org", "code": "1751-7", "display": "Albumin [Mass/volume] in Serum or Plasma"}]},
+        "subject": {"reference": "Patient/patient-001"},
+        "effectiveDateTime": "2025-01-15T08:30:00Z",
+        "valueQuantity": {"value": 4.1, "unit": "g/dL", "system": "http://unitsofmeasure.org", "code": "g/dL"}
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "id": "obs-005",
+        "status": "final",
+        "code": {"coding": [{"system": "http://loinc.org", "code": "2571-8", "display": "Triglycerides [Mass/volume] in Serum or Plasma"}]},
+        "subject": {"reference": "Patient/patient-001"},
+        "effectiveDateTime": "2025-01-15T08:30:00Z",
+        "valueQuantity": {"value": 142.0, "unit": "mg/dL", "system": "http://unitsofmeasure.org", "code": "mg/dL"}
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "id": "obs-006",
+        "status": "final",
+        "code": {"coding": [{"system": "http://loinc.org", "code": "6690-2", "display": "Leukocytes [#/volume] in Blood by Automated count"}]},
+        "subject": {"reference": "Patient/patient-001"},
+        "effectiveDateTime": "2025-01-15T08:30:00Z",
+        "valueQuantity": {"value": 6.8, "unit": "10*3/uL", "system": "http://unitsofmeasure.org", "code": "10*3/uL"}
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "id": "obs-007",
+        "status": "final",
+        "code": {"coding": [{"system": "http://loinc.org", "code": "777-3", "display": "Platelets [#/volume] in Blood by Automated count"}]},
+        "subject": {"reference": "Patient/patient-001"},
+        "effectiveDateTime": "2025-01-15T08:30:00Z",
+        "valueQuantity": {"value": 245.0, "unit": "10*3/uL", "system": "http://unitsofmeasure.org", "code": "10*3/uL"}
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "id": "obs-008",
+        "status": "final",
+        "code": {"coding": [{"system": "http://loinc.org", "code": "2823-3", "display": "Potassium [Moles/volume] in Serum or Plasma"}]},
+        "subject": {"reference": "Patient/patient-001"},
+        "effectiveDateTime": "2025-01-15T08:30:00Z",
+        "valueQuantity": {"value": 4.2, "unit": "mmol/L", "system": "http://unitsofmeasure.org", "code": "mmol/L"}
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "id": "obs-009",
+        "status": "final",
+        "code": {"coding": [{"system": "http://loinc.org", "code": "2345-7", "display": "Glucose [Mass/volume] in Serum or Plasma --post 12.5 hours fasting"}]},
+        "subject": {"reference": "Patient/patient-001"},
+        "effectiveDateTime": "2025-03-20T08:15:00Z",
+        "valueQuantity": {"value": 101.2, "unit": "mg/dL", "system": "http://unitsofmeasure.org", "code": "mg/dL"}
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "id": "obs-010",
+        "status": "final",
+        "code": {"coding": [{"system": "http://loinc.org", "code": "718-7", "display": "Hemoglobin [Mass/volume] in Blood"}]},
+        "subject": {"reference": "Patient/patient-001"},
+        "effectiveDateTime": "2025-03-20T08:15:00Z",
+        "valueQuantity": {"value": 14.1, "unit": "g/dL", "system": "http://unitsofmeasure.org", "code": "g/dL"}
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "id": "obs-011",
+        "status": "final",
+        "code": {"coding": [{"system": "http://loinc.org", "code": "2160-0", "display": "Creatinine [Mass/volume] in Serum or Plasma"}]},
+        "subject": {"reference": "Patient/patient-001"},
+        "effectiveDateTime": "2025-03-20T08:15:00Z",
+        "valueQuantity": {"value": 0.91, "unit": "mg/dL", "system": "http://unitsofmeasure.org", "code": "mg/dL"}
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "id": "obs-012",
+        "status": "final",
+        "code": {"coding": [{"system": "http://loinc.org", "code": "1751-7", "display": "Albumin [Mass/volume] in Serum or Plasma"}]},
+        "subject": {"reference": "Patient/patient-001"},
+        "effectiveDateTime": "2025-03-20T08:15:00Z",
+        "valueQuantity": {"value": 3.9, "unit": "g/dL", "system": "http://unitsofmeasure.org", "code": "g/dL"}
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "id": "obs-013",
+        "status": "final",
+        "code": {"coding": [{"system": "http://loinc.org", "code": "2571-8", "display": "Triglycerides [Mass/volume] in Serum or Plasma"}]},
+        "subject": {"reference": "Patient/patient-001"},
+        "effectiveDateTime": "2025-03-20T08:15:00Z",
+        "valueQuantity": {"value": 158.0, "unit": "mg/dL", "system": "http://unitsofmeasure.org", "code": "mg/dL"}
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "id": "obs-014",
+        "status": "final",
+        "code": {"coding": [{"system": "http://loinc.org", "code": "6690-2", "display": "Leukocytes [#/volume] in Blood by Automated count"}]},
+        "subject": {"reference": "Patient/patient-001"},
+        "effectiveDateTime": "2025-03-20T08:15:00Z",
+        "valueQuantity": {"value": 7.2, "unit": "10*3/uL", "system": "http://unitsofmeasure.org", "code": "10*3/uL"}
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "id": "obs-015",
+        "status": "final",
+        "code": {"coding": [{"system": "http://loinc.org", "code": "777-3", "display": "Platelets [#/volume] in Blood by Automated count"}]},
+        "subject": {"reference": "Patient/patient-001"},
+        "effectiveDateTime": "2025-03-20T08:15:00Z",
+        "valueQuantity": {"value": 231.0, "unit": "10*3/uL", "system": "http://unitsofmeasure.org", "code": "10*3/uL"}
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "id": "obs-016",
+        "status": "final",
+        "code": {"coding": [{"system": "http://loinc.org", "code": "2823-3", "display": "Potassium [Moles/volume] in Serum or Plasma"}]},
+        "subject": {"reference": "Patient/patient-001"},
+        "effectiveDateTime": "2025-03-20T08:15:00Z",
+        "valueQuantity": {"value": 4.0, "unit": "mmol/L", "system": "http://unitsofmeasure.org", "code": "mmol/L"}
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "id": "obs-017",
+        "status": "final",
+        "code": {"coding": [{"system": "http://loinc.org", "code": "2345-7", "display": "Glucose"}]},
+        "subject": {"reference": "Patient/patient-001"},
+        "effectiveDateTime": "2025-06-10T09:00:00Z",
+        "valueQuantity": {"value": 88.0, "unit": "mg/dL", "system": "http://unitsofmeasure.org", "code": "mg/dL"}
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "id": "obs-018",
+        "status": "final",
+        "code": {"coding": [{"system": "http://loinc.org", "code": "718-7", "display": "Hemoglobin"}]},
+        "subject": {"reference": "Patient/patient-001"},
+        "effectiveDateTime": "2025-06-10T09:00:00Z",
+        "valueQuantity": {"value": 13.5, "unit": "g/dL", "system": "http://unitsofmeasure.org", "code": "g/dL"}
+      }
+    }
+  ]
+}

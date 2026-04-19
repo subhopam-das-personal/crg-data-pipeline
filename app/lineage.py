@@ -101,6 +101,25 @@ def emit_bronze_event(run_id: str, passed: int, quarantined: int, gate_results: 
 
     assertions = _build_assertions(gate_results)
 
+    # Define input dataset (FHIR bundle upload)
+    input_dataset = Dataset(
+        namespace=NAMESPACE,
+        name=INPUT_FHIR_BUNDLE,
+        facets={
+            "schema": SchemaDatasetFacet(fields=[
+                SchemaField(name="resourceType", type="TEXT"),
+                SchemaField(name="type", type="TEXT"),
+                SchemaField(name="id", type="TEXT"),
+            ]),
+            "dataQualityMetrics": DataQualityMetricsInputDatasetFacet(
+                rowCount=1,  # One bundle uploaded
+                bytes=None,
+                columnMetrics={},
+            ),
+        },
+    )
+
+    # Define output dataset (bronze table)
     output_dataset = Dataset(
         namespace=NAMESPACE,
         name=BRONZE_TABLE,
@@ -111,6 +130,7 @@ def emit_bronze_event(run_id: str, passed: int, quarantined: int, gate_results: 
                 SchemaField(name="loinc_code", type="TEXT"),
                 SchemaField(name="effective_datetime", type="TEXT"),
                 SchemaField(name="value_numeric", type="DOUBLE"),
+                SchemaField(name="unit", type="TEXT"),
             ]),
             "dataQualityAssertions": DataQualityAssertionsDatasetFacet(assertions=assertions),
             "dataQualityMetrics": DataQualityMetricsInputDatasetFacet(
@@ -127,7 +147,7 @@ def emit_bronze_event(run_id: str, passed: int, quarantined: int, gate_results: 
         run=Run(runId=run_id),
         job=Job(namespace=NAMESPACE, name=JOB_FHIR_TO_BRONZE),
         producer=PRODUCER,
-        inputs=[Dataset(namespace=NAMESPACE, name=INPUT_FHIR_BUNDLE)],
+        inputs=[input_dataset],
         outputs=[output_dataset],
     )
 
@@ -145,6 +165,23 @@ def emit_silver_event(run_id: str, passed: int, quarantined: int, gate_results: 
 
     assertions = _build_assertions(gate_results)
 
+    # Define input dataset (bronze table) - must match bronze output schema
+    input_dataset = Dataset(
+        namespace=NAMESPACE,
+        name=BRONZE_TABLE,
+        facets={
+            "schema": SchemaDatasetFacet(fields=[
+                SchemaField(name="id", type="TEXT"),
+                SchemaField(name="patient_id", type="TEXT"),
+                SchemaField(name="loinc_code", type="TEXT"),
+                SchemaField(name="effective_datetime", type="TEXT"),
+                SchemaField(name="value_numeric", type="DOUBLE"),
+                SchemaField(name="unit", type="TEXT"),
+            ]),
+        },
+    )
+
+    # Define output dataset (silver table)
     output_dataset = Dataset(
         namespace=NAMESPACE,
         name=SILVER_TABLE,
@@ -155,6 +192,7 @@ def emit_silver_event(run_id: str, passed: int, quarantined: int, gate_results: 
                 SchemaField(name="loinc_code", type="TEXT"),
                 SchemaField(name="effective_dt", type="TEXT"),
                 SchemaField(name="value_numeric", type="DOUBLE"),
+                SchemaField(name="unit", type="TEXT"),
                 SchemaField(name="lbnrind", type="TEXT"),
             ]),
             "dataQualityAssertions": DataQualityAssertionsDatasetFacet(
@@ -174,7 +212,7 @@ def emit_silver_event(run_id: str, passed: int, quarantined: int, gate_results: 
         run=Run(runId=run_id),
         job=Job(namespace=NAMESPACE, name=JOB_BRONZE_TO_SILVER),
         producer=PRODUCER,
-        inputs=[Dataset(namespace=NAMESPACE, name=BRONZE_TABLE)],
+        inputs=[input_dataset],
         outputs=[output_dataset],
     )
 
@@ -192,6 +230,24 @@ def emit_gold_event(run_id: str, row_count: int) -> None:
 
     sha = _git_sha()
 
+    # Define input dataset (silver table) - must match silver output schema
+    input_dataset = Dataset(
+        namespace=NAMESPACE,
+        name=SILVER_TABLE,
+        facets={
+            "schema": SchemaDatasetFacet(fields=[
+                SchemaField(name="id", type="TEXT"),
+                SchemaField(name="patient_id", type="TEXT"),
+                SchemaField(name="loinc_code", type="TEXT"),
+                SchemaField(name="effective_dt", type="TEXT"),
+                SchemaField(name="value_numeric", type="DOUBLE"),
+                SchemaField(name="unit", type="TEXT"),
+                SchemaField(name="lbnrind", type="TEXT"),
+            ]),
+        },
+    )
+
+    # Define output dataset (gold table)
     output_dataset = Dataset(
         namespace=NAMESPACE,
         name=GOLD_TABLE,
@@ -237,7 +293,7 @@ def emit_gold_event(run_id: str, row_count: int) -> None:
             },
         ),
         producer=PRODUCER,
-        inputs=[Dataset(namespace=NAMESPACE, name=SILVER_TABLE)],
+        inputs=[input_dataset],
         outputs=[output_dataset],
     )
 

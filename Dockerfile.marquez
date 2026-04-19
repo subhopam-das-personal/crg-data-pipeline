@@ -3,7 +3,7 @@ FROM marquezproject/marquez:0.47.0
 # Install psql so the entrypoint can CREATE SCHEMA IF NOT EXISTS marquez
 # before Flyway migrations run.
 USER root
-RUN apk add --no-cache postgresql-client
+RUN apt-get update && apt-get install -y --no-install-recommends postgresql-client && rm -rf /var/lib/apt/lists/*
 
 # Overwrite the default embedded-H2 config with our PostgreSQL config.
 # Dropwizard resolves ${VAR:-default} at startup from the environment.

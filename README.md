@@ -102,61 +102,18 @@ pytest
 
 ---
 
-## 📸 Demo Screenshots
+## 🌐 Live Demo
 
-### 🏠 Home Tab - Architecture Overview
+**Try the live demo:** https://ravishing-learning-production-042f.up.railway.app/
 
-![Home Tab](https://maas-log-prod.cn-wlcb.ufileos.com/anthropic/0cfa1dd7-915b-4846-836d-6178181c5572/homepage.png?UCloudPublicKey=TOKEN_e15ba47a-d098-4fbd-9afc-a0dcf0e4e621&Expires=1776603993&Signature=RxYzr1vqdMioM5ESDdaoVMmrGDw=)
-
-Comprehensive explanation of the pipeline architecture, data flow, and use case with clear storytelling approach.
-
----
-
-### 📥 Upload Tab - Load FHIR Data
-
-![Upload Tab](https://maas-log-prod.cn-wlcb.ufileos.com/anthropic/0cfa1dd7-915b-4846-836d-6178181c5572/upload-tab.png?UCloudPublicKey=TOKEN_e15ba47a-d098-4fbd-9afc-a0dcf0e4e621&Expires=1776604025&Signature=GwpeC8uuVzID5N4+Qrmss8FONe4=)
-
-Upload FHIR R4 Bundle JSON files or use demo bundles. Includes Marquez connectivity status.
-
----
-
-### 🥉 Bronze Tab - Quality Gates
-
-![Bronze Tab](https://maas-log-prod.cn-wlcb.ufileos.com/anthropic/0cfa1dd7-915b-4846-836d-6178181c5572/bronze-tab.png?UCloudPublicKey=TOKEN_e15ba47a-d098-4fbd-9afc-a0dcf0e4e621&Expires=1776604090&Signature=ySpEPR7BGRzBS2sMG5VgDlANkf4=)
-
-View records that passed structural validation and those quarantined with failure reasons.
-
----
-
-### 🥈 Silver Tab - Normalized Data
-
-![Silver Tab](https://maas-log-prod.cn-wlcb.ufileos.com/anthropic/0cfa1dd7-915b-4846-836d-6178181c5572/silver-tab.png?UCloudPublicKey=TOKEN_e15ba47a-d098-4fbd-9afc-a0dcf0e4e621&Expires=1776604108&Signature=rpOAKs5EUZaa7houa+l3tbeM3Y0=)
-
-See normalized data with reference range indicators (H=high, L=low, N=normal, UN=unknown).
-
----
-
-### 🥇 Gold Tab - CDISC SDTM Output
-
-![Gold Tab](https://maas-log-prod.cn-wlcb.ufileos.com/anthropic/0cfa1dd7-915b-4846-836d-6178181c5572/gold-tab.png?UCloudPublicKey=TOKEN_e15ba47a-d098-4fbd-9afc-a0dcf0e4e621&Expires=1776604108&Signature=ccOdDEFImGYsCiWI+62HODbUO5A=)
-
-View FDA-ready SDTM LB output with protocol URI links and download as CSV.
-
----
-
-### 🔗 Lineage Tab - Data Provenance
-
-![Lineage Tab](https://maas-log-prod.cn-wlcb.ufileos.com/anthropic/0cfa1dd7-915b-4846-836d-6178181c5572/lineage-tab.png?UCloudPublicKey=TOKEN_e15ba47a-d098-4fbd-9afc-a0dcf0e4e621&Expires=1776604126&Signature=WWCsKGTvYEuhvX8K8owNhIaswmc=)
-
-Explore the complete data lineage DAG with quality assertion summaries and deep links to Marquez.
-
----
-
-### 📖 Registry Tab - LOINC Master Schema
-
-![Registry Tab](https://maas-log-prod.cn-wlcb.ufileos.com/anthropic/0cfa1dd7-915b-4846-836d-6178181c5572/registry-tab.png?UCloudPublicKey=TOKEN_e15ba47a-d098-4fbd-9afc-a0dcf0e4e621&Expires=1776604126&Signature=6uVgW3+Zdtj0m7hnWvLeI2h+Fdg=)
-
-Inspect the LOINC master schema driving all quality gates (8 demo codes).
+The live demo showcases all features:
+- 🏠 **Home Tab** — Architecture overview and storytelling approach
+- 📥 **Upload Tab** — Load FHIR bundles or use demo data
+- 🥉 **Bronze Tab** — Quality gates and quarantine tracking
+- 🥈 **Silver Tab** — Normalized data with reference range indicators
+- 🥇 **Gold Tab** — CDISC SDTM LB output with download
+- 🔗 **Lineage Tab** — Data provenance and Marquez integration
+- 📖 **Registry Tab** — LOINC master schema inspection
 
 ---
 

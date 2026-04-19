@@ -20,6 +20,9 @@ from openlineage.client.facet import (
     SchemaDatasetFacet,
     SchemaField,
     SourceCodeLocationJobFacet,
+    ColumnLineageDatasetFacet,
+    ColumnLineageDatasetFacetFieldsAdditional,
+    ColumnLineageDatasetFacetFieldsAdditionalInputFields,
 )
 
 # Add app directory to path for imports
@@ -203,6 +206,92 @@ def emit_silver_event(run_id: str, passed: int, quarantined: int, gate_results: 
                 bytes=None,
                 columnMetrics={},
             ),
+            "columnLineage": ColumnLineageDatasetFacet(
+                fields={
+                    "id": ColumnLineageDatasetFacetFieldsAdditional(
+                        inputFields=[
+                            ColumnLineageDatasetFacetFieldsAdditionalInputFields(
+                                namespace=NAMESPACE,
+                                name=BRONZE_TABLE,
+                                field="id"
+                            )
+                        ],
+                        transformationDescription="Direct copy of observation identifier",
+                        transformationType="IDENTITY"
+                    ),
+                    "patient_id": ColumnLineageDatasetFacetFieldsAdditional(
+                        inputFields=[
+                            ColumnLineageDatasetFacetFieldsAdditionalInputFields(
+                                namespace=NAMESPACE,
+                                name=BRONZE_TABLE,
+                                field="patient_id"
+                            )
+                        ],
+                        transformationDescription="Direct copy of patient identifier",
+                        transformationType="IDENTITY"
+                    ),
+                    "loinc_code": ColumnLineageDatasetFacetFieldsAdditional(
+                        inputFields=[
+                            ColumnLineageDatasetFacetFieldsAdditionalInputFields(
+                                namespace=NAMESPACE,
+                                name=BRONZE_TABLE,
+                                field="loinc_code"
+                            )
+                        ],
+                        transformationDescription="Direct copy of LOINC code",
+                        transformationType="IDENTITY"
+                    ),
+                    "effective_dt": ColumnLineageDatasetFacetFieldsAdditional(
+                        inputFields=[
+                            ColumnLineageDatasetFacetFieldsAdditionalInputFields(
+                                namespace=NAMESPACE,
+                                name=BRONZE_TABLE,
+                                field="effective_datetime"
+                            )
+                        ],
+                        transformationDescription="Renamed from effective_datetime for consistency",
+                        transformationType="IDENTITY"
+                    ),
+                    "value_numeric": ColumnLineageDatasetFacetFieldsAdditional(
+                        inputFields=[
+                            ColumnLineageDatasetFacetFieldsAdditionalInputFields(
+                                namespace=NAMESPACE,
+                                name=BRONZE_TABLE,
+                                field="value_numeric"
+                            )
+                        ],
+                        transformationDescription="Direct copy of numeric observation value",
+                        transformationType="IDENTITY"
+                    ),
+                    "unit": ColumnLineageDatasetFacetFieldsAdditional(
+                        inputFields=[
+                            ColumnLineageDatasetFacetFieldsAdditionalInputFields(
+                                namespace=NAMESPACE,
+                                name=BRONZE_TABLE,
+                                field="unit"
+                            )
+                        ],
+                        transformationDescription="Direct copy of unit",
+                        transformationType="IDENTITY"
+                    ),
+                    "lbnrind": ColumnLineageDatasetFacetFieldsAdditional(
+                        inputFields=[
+                            ColumnLineageDatasetFacetFieldsAdditionalInputFields(
+                                namespace=NAMESPACE,
+                                name=BRONZE_TABLE,
+                                field="value_numeric"
+                            ),
+                            ColumnLineageDatasetFacetFieldsAdditionalInputFields(
+                                namespace=NAMESPACE,
+                                name=BRONZE_TABLE,
+                                field="loinc_code"
+                            )
+                        ],
+                        transformationDescription="Calculated reference range indicator (H/L/N/UN) based on LOINC reference ranges",
+                        transformationType="DERIVATION"
+                    ),
+                }
+            ),
         },
     )
 
@@ -274,6 +363,156 @@ def emit_gold_event(run_id: str, row_count: int) -> None:
                 rowCount=row_count,
                 bytes=None,
                 columnMetrics={},
+            ),
+            "columnLineage": ColumnLineageDatasetFacet(
+                fields={
+                    "USUBJID": ColumnLineageDatasetFacetFieldsAdditional(
+                        inputFields=[
+                            ColumnLineageDatasetFacetFieldsAdditionalInputFields(
+                                namespace=NAMESPACE,
+                                name=SILVER_TABLE,
+                                field="patient_id"
+                            )
+                        ],
+                        transformationDescription="Transformed to CDISC SDTM subject ID format (STUDYID-patientID)",
+                        transformationType="TRANSFORMATION"
+                    ),
+                    "LBTESTCD": ColumnLineageDatasetFacetFieldsAdditional(
+                        inputFields=[
+                            ColumnLineageDatasetFacetFieldsAdditionalInputFields(
+                                namespace=NAMESPACE,
+                                name=SILVER_TABLE,
+                                field="loinc_code"
+                            )
+                        ],
+                        transformationDescription="Mapped from LOINC code to CDISC LB test code",
+                        transformationType="LOOKUP"
+                    ),
+                    "LBTEST": ColumnLineageDatasetFacetFieldsAdditional(
+                        inputFields=[
+                            ColumnLineageDatasetFacetFieldsAdditionalInputFields(
+                                namespace=NAMESPACE,
+                                name=SILVER_TABLE,
+                                field="loinc_code"
+                            )
+                        ],
+                        transformationDescription="Mapped from LOINC code to CDISC LB test name",
+                        transformationType="LOOKUP"
+                    ),
+                    "LBSPEC": ColumnLineageDatasetFacetFieldsAdditional(
+                        inputFields=[
+                            ColumnLineageDatasetFacetFieldsAdditionalInputFields(
+                                namespace=NAMESPACE,
+                                name=SILVER_TABLE,
+                                field="loinc_code"
+                            )
+                        ],
+                        transformationDescription="Mapped from LOINC code to CDISC LB specimen",
+                        transformationType="LOOKUP"
+                    ),
+                    "LBORRES": ColumnLineageDatasetFacetFieldsAdditional(
+                        inputFields=[
+                            ColumnLineageDatasetFacetFieldsAdditionalInputFields(
+                                namespace=NAMESPACE,
+                                name=SILVER_TABLE,
+                                field="value_numeric"
+                            )
+                        ],
+                        transformationDescription="Converted to string for CDISC SDTM LB observation result",
+                        transformationType="TYPE_CONVERSION"
+                    ),
+                    "LBDTC": ColumnLineageDatasetFacetFieldsAdditional(
+                        inputFields=[
+                            ColumnLineageDatasetFacetFieldsAdditionalInputFields(
+                                namespace=NAMESPACE,
+                                name=SILVER_TABLE,
+                                field="effective_dt"
+                            )
+                        ],
+                        transformationDescription="Renamed to CDISC SDTM LB date/time format",
+                        transformationType="IDENTITY"
+                    ),
+                    "LBLOINC": ColumnLineageDatasetFacetFieldsAdditional(
+                        inputFields=[
+                            ColumnLineageDatasetFacetFieldsAdditionalInputFields(
+                                namespace=NAMESPACE,
+                                name=SILVER_TABLE,
+                                field="loinc_code"
+                            )
+                        ],
+                        transformationDescription="Renamed to CDISC SDTM LOINC field",
+                        transformationType="IDENTITY"
+                    ),
+                    "LBNRIND": ColumnLineageDatasetFacetFieldsAdditional(
+                        inputFields=[
+                            ColumnLineageDatasetFacetFieldsAdditionalInputFields(
+                                namespace=NAMESPACE,
+                                name=SILVER_TABLE,
+                                field="lbnrind"
+                            )
+                        ],
+                        transformationDescription="Renamed to CDISC SDTM LB reference range indicator",
+                        transformationType="IDENTITY"
+                    ),
+                    "LBSTRESN": ColumnLineageDatasetFacetFieldsAdditional(
+                        inputFields=[
+                            ColumnLineageDatasetFacetFieldsAdditionalInputFields(
+                                namespace=NAMESPACE,
+                                name=SILVER_TABLE,
+                                field="value_numeric"
+                            )
+                        ],
+                        transformationDescription="Renamed to CDISC SDTM LB result numeric",
+                        transformationType="IDENTITY"
+                    ),
+                    "LBSTRESU": ColumnLineageDatasetFacetFieldsAdditional(
+                        inputFields=[
+                            ColumnLineageDatasetFacetFieldsAdditionalInputFields(
+                                namespace=NAMESPACE,
+                                name=SILVER_TABLE,
+                                field="unit"
+                            )
+                        ],
+                        transformationDescription="Renamed to CDISC SDTM LB result units",
+                        transformationType="IDENTITY"
+                    ),
+                    "STUDYID": ColumnLineageDatasetFacetFieldsAdditional(
+                        inputFields=[],
+                        transformationDescription="Added from protocol configuration (constant for this demo)",
+                        transformationType="CONSTANT"
+                    ),
+                    "VISITNUM": ColumnLineageDatasetFacetFieldsAdditional(
+                        inputFields=[],
+                        transformationDescription="Added from protocol configuration (constant for this demo)",
+                        transformationType="CONSTANT"
+                    ),
+                    "VISIT": ColumnLineageDatasetFacetFieldsAdditional(
+                        inputFields=[],
+                        transformationDescription="Added from protocol configuration (constant for this demo)",
+                        transformationType="CONSTANT"
+                    ),
+                    "LBBLFL": ColumnLineageDatasetFacetFieldsAdditional(
+                        inputFields=[],
+                        transformationDescription="Added from protocol configuration (constant for this demo)",
+                        transformationType="CONSTANT"
+                    ),
+                    "EPOCH": ColumnLineageDatasetFacetFieldsAdditional(
+                        inputFields=[],
+                        transformationDescription="Added from protocol configuration (constant for this demo)",
+                        transformationType="CONSTANT"
+                    ),
+                    "protocol_uri": ColumnLineageDatasetFacetFieldsAdditional(
+                        inputFields=[
+                            ColumnLineageDatasetFacetFieldsAdditionalInputFields(
+                                namespace=NAMESPACE,
+                                name=SILVER_TABLE,
+                                field="loinc_code"
+                            )
+                        ],
+                        transformationDescription="Generated protocol URI linking LOINC code to study protocol",
+                        transformationType="DERIVATION"
+                    ),
+                }
             ),
         },
     )

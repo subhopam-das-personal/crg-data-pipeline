@@ -8,11 +8,12 @@ from pathlib import Path
 import requests
 import streamlit as st
 
+# Add app directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent))
 
-from .pipeline import run_full_pipeline
-from .lineage import emit_pipeline_events
-from .master_schema import SCHEMA
+from pipeline import run_full_pipeline
+from lineage import emit_pipeline_events
+from master_schema import SCHEMA
 
 logger = logging.getLogger(__name__)
 

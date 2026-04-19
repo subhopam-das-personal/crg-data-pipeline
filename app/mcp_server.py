@@ -6,13 +6,17 @@ Exposes LOINC ontology and pipeline lineage data to AI agents via the Model Cont
 
 import json
 import os
+import sys
 from pathlib import Path
 
 import requests
 from fastmcp import FastMCP
 
-from .master_schema import SCHEMA, get_mapping
-from .constants import NAMESPACE
+# Add app directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent))
+
+from master_schema import SCHEMA, get_mapping
+from constants import NAMESPACE
 
 MARQUEZ_URL = os.getenv("OPENLINEAGE_URL", "http://localhost:5000")
 

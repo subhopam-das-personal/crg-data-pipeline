@@ -1,7 +1,9 @@
 import logging
 import os
 import subprocess
+import sys
 from datetime import datetime, timezone
+from pathlib import Path
 
 from openlineage.client import OpenLineageClient
 from openlineage.client.run import (
@@ -20,7 +22,10 @@ from openlineage.client.facet import (
     SourceCodeLocationJobFacet,
 )
 
-from .constants import (
+# Add app directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent))
+
+from constants import (
     NAMESPACE, PRODUCER,
     JOB_FHIR_TO_BRONZE, JOB_BRONZE_TO_SILVER, JOB_SILVER_TO_GOLD,
     BRONZE_TABLE, SILVER_TABLE, GOLD_TABLE,

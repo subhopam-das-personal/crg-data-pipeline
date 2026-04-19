@@ -1,5 +1,7 @@
 import json
 import logging
+import os
+import sys
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -7,9 +9,12 @@ from pathlib import Path
 import duckdb
 import pandas as pd
 
-from .master_schema import SCHEMA, get_mapping
-from .quality import run_bronze_gates, run_silver_gates, check_reference_range, all_passed, first_failure_reason, QualityResult
-from .constants import (
+# Add app directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent))
+
+from master_schema import SCHEMA, get_mapping
+from quality import run_bronze_gates, run_silver_gates, check_reference_range, all_passed, first_failure_reason, QualityResult
+from constants import (
     STUDY_ID, VISITNUM, VISIT, EPOCH, LBBLFL,
     BRONZE_TABLE, SILVER_TABLE, GOLD_TABLE, QUARANTINE_TABLE
 )

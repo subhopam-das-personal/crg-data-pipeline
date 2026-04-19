@@ -14,10 +14,12 @@ sys.path.insert(0, str(Path(__file__).parent))
 from pipeline import run_full_pipeline
 from lineage import emit_pipeline_events
 from master_schema import SCHEMA
+from constants import NAMESPACE, JOB_SILVER_TO_GOLD
 
 logger = logging.getLogger(__name__)
 
 OPENLINEAGE_URL = os.getenv("OPENLINEAGE_URL", "http://localhost:5000")
+MARQUEZ_UI_URL = os.getenv("MARQUEZ_UI_URL", OPENLINEAGE_URL.replace(":5000", ":3000"))
 SAMPLE_DIR = Path(__file__).parent.parent / "data" / "sample_fhir"
 
 st.set_page_config(
@@ -30,6 +32,27 @@ st.set_page_config(
 for key in ["bundle_json", "bundle_name", "results", "run_id"]:
     if key not in st.session_state:
         st.session_state[key] = None
+
+# Auto-run pipeline on first load with the anomaly bundle.
+# This means every tab has data the moment the app opens — no upload step needed.
+if st.session_state.results is None:
+    _bundle_path = SAMPLE_DIR / "anomaly_bundle.json"
+    if _bundle_path.exists():
+        with st.spinner("Initializing demo pipeline..."):
+            try:
+                _bundle_json = _bundle_path.read_text()
+                _results = run_full_pipeline(_bundle_json)
+                _run_id = str(uuid.uuid4())
+                st.session_state.results = _results
+                st.session_state.run_id = _run_id
+                st.session_state.bundle_json = _bundle_json
+                st.session_state.bundle_name = "anomaly_bundle.json"
+                try:
+                    emit_pipeline_events(_run_id, _results)
+                except Exception as _e:
+                    logger.warning(f"Failed to emit lineage events on startup: {_e}")
+            except Exception as _e:
+                logger.error(f"Auto-pipeline initialization failed: {_e}")
 
 # ── Header ────────────────────────────────────────────────────────────────────
 st.title("Clinical Data Quality, Governance & Lineage")
@@ -162,21 +185,27 @@ with tab_upload:
 
     # Marquez connectivity check (cached for 30 seconds)
     @st.cache_data(ttl=30)
-    def _check_marquez() -> tuple[bool, str]:
-        """Returns (healthy: bool, error_msg: str). Never raises."""
+    def _check_marquez() -> tuple[str, str]:
+        """Returns ('connected'|'degraded'|'unavailable', detail). Never raises."""
         try:
             r = requests.get(f"{OPENLINEAGE_URL}/api/v1/namespaces", timeout=3)
             if r.status_code == 200:
-                return True, ""
-            return False, f"HTTP {r.status_code}"
+                return "connected", OPENLINEAGE_URL
+            return "degraded", f"HTTP {r.status_code}"
+        except requests.exceptions.ConnectionError:
+            return "unavailable", "connection refused"
+        except requests.exceptions.Timeout:
+            return "degraded", "timed out"
         except Exception as e:
-            return False, str(e)
+            return "unavailable", type(e).__name__
 
-    healthy, error_msg = _check_marquez()
-    if healthy:
-        st.success("✅ Marquez connected")
+    _marquez_status, _marquez_detail = _check_marquez()
+    if _marquez_status == "connected":
+        st.success(f"✅ Marquez connected · {_marquez_detail}")
+    elif _marquez_status == "degraded":
+        st.warning(f"⚠️ Marquez degraded · {_marquez_detail} · lineage events may not record")
     else:
-        st.warning(f"⚠️ Marquez unavailable: {error_msg}. Pipeline will run but lineage events will not be recorded.")
+        st.info(f"ℹ️ Marquez not running · pipeline works, lineage events skipped · start with `docker-compose up marquez`")
 
     col_upload, col_demo = st.columns([2, 1])
 
@@ -394,8 +423,11 @@ with tab_lineage:
 5. Click **Lineage** tab to see the full DAG: `fhir_bundle_upload → bronze → silver → gold`
             """)
         with col_link:
-            marquez_ui_url = OPENLINEAGE_URL.replace(":5000", ":3000")
-            st.link_button("Open Marquez UI →", marquez_ui_url, use_container_width=True)
+            # Deep-link directly to the silver_to_gold job lineage view —
+            # the most interesting DAG node showing quality assertion facets.
+            _job_url = f"{MARQUEZ_UI_URL}/#/lineage/job/{NAMESPACE}/{JOB_SILVER_TO_GOLD}"
+            st.link_button("Open Marquez UI →", MARQUEZ_UI_URL, use_container_width=True)
+            st.link_button("View silver→gold DAG →", _job_url, use_container_width=True)
 
         b = results["bronze"]
         s = results["silver"]
@@ -420,8 +452,7 @@ with tab_lineage:
             st.success("All records passed all quality gates.")
     else:
         st.info("Run the pipeline in the Upload tab first. Lineage events will be emitted automatically.")
-        marquez_ui_url = OPENLINEAGE_URL.replace(":5000", ":3000")
-        st.link_button("Open Marquez UI →", marquez_ui_url)
+        st.link_button("Open Marquez UI →", MARQUEZ_UI_URL)
 
 # ── Tab 6: Registry ───────────────────────────────────────────────────────────
 with tab_registry:

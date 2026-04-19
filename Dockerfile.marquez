@@ -1,0 +1,18 @@
+FROM marquezproject/marquez:0.47.0
+
+# Install psql so the entrypoint can CREATE SCHEMA IF NOT EXISTS marquez
+# before Flyway migrations run.
+USER root
+RUN apk add --no-cache postgresql-client
+
+# Overwrite the default embedded-H2 config with our PostgreSQL config.
+# Dropwizard resolves ${VAR:-default} at startup from the environment.
+COPY config/marquez.yml /usr/src/app/marquez.yml
+
+# Custom entrypoint: creates the marquez schema, then starts Marquez.
+COPY scripts/marquez-entrypoint.sh /marquez-entrypoint.sh
+RUN chmod +x /marquez-entrypoint.sh
+
+EXPOSE 5000 3000
+
+ENTRYPOINT ["/marquez-entrypoint.sh"]

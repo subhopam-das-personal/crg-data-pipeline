@@ -233,9 +233,6 @@ def emit_gold_event(run_id: str, row_count: int) -> None:
                 "sourceCodeLocation": SourceCodeLocationJobFacet(
                     type="git",
                     url="https://github.com/subhopam/data_lineage",
-                    repoUrl="https://github.com/subhopam/data_lineage",
-                    branch="main",
-                    version=sha,
                 )
             },
         ),

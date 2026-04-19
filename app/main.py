@@ -218,12 +218,12 @@ with tab_upload:
 
     with col_demo:
         st.write("**Demo files:**")
-        if st.button("✅ Clean bundle (18 obs)", use_container_width=True):
+        if st.button("✅ Clean bundle (18 obs)", width="stretch"):
             path = SAMPLE_DIR / "clean_bundle.json"
             st.session_state.bundle_json = path.read_text()
             st.session_state.bundle_name = "clean_bundle.json"
             st.session_state.results = None
-        if st.button("⚠️ Anomaly bundle (20 obs, 2 broken)", use_container_width=True):
+        if st.button("⚠️ Anomaly bundle (20 obs, 2 broken)", width="stretch"):
             path = SAMPLE_DIR / "anomaly_bundle.json"
             st.session_state.bundle_json = path.read_text()
             st.session_state.bundle_name = "anomaly_bundle.json"
@@ -239,7 +239,7 @@ with tab_upload:
         )
         st.metric("Observations in bundle", obs_count)
 
-        if st.button("▶️ Run Pipeline", type="primary", use_container_width=True):
+        if st.button("▶️ Run Pipeline", type="primary", width="stretch"):
             with st.spinner("Running Bronze → Silver → Gold..."):
                 try:
                     results = run_full_pipeline(st.session_state.bundle_json)
@@ -286,11 +286,11 @@ with tab_bronze:
             st.write("**Ingested records (Bronze layer):**")
             display_cols = ["id", "patient_id", "loinc_code", "effective_datetime", "value_numeric", "unit"]
             available = [c for c in display_cols if c in b["passed_df"].columns]
-            st.dataframe(b["passed_df"][available], use_container_width=True)
+            st.dataframe(b["passed_df"][available], width="stretch")
 
         if b["quarantined_rows"]:
             st.error(f"⚠️ {b['quarantined']} record(s) quarantined at Bronze:")
-            st.dataframe(b["quarantined_rows"], use_container_width=True)
+            st.dataframe(b["quarantined_rows"], width="stretch")
 
         # Gate results summary
         if b.get("gate_results"):
@@ -323,11 +323,11 @@ with tab_silver:
 
         if not s["silver_df"].empty:
             st.write("**Normalized records (Silver layer):**")
-            st.dataframe(s["silver_df"], use_container_width=True)
+            st.dataframe(s["silver_df"], width="stretch")
 
         if not s["quarantine_df"].empty:
             st.error("⚠️ Quarantine log (all layers):")
-            st.dataframe(s["quarantine_df"], use_container_width=True)
+            st.dataframe(s["quarantine_df"], width="stretch")
             st.caption(
                 "These records failed quality gates and were NOT promoted to Gold. "
                 "The reason codes are also embedded in the OpenLineage DataQualityAssertionsFacet "
@@ -363,7 +363,7 @@ with tab_gold:
 
         if not g["gold_df"].empty:
             st.write("**SDTM LB dataset (Gold layer):**")
-            st.dataframe(g["gold_df"], use_container_width=True)
+            st.dataframe(g["gold_df"], width="stretch")
 
             # CSV export
             csv_data = g["gold_df"].to_csv(index=False)
@@ -372,7 +372,7 @@ with tab_gold:
                 data=csv_data,
                 file_name="sdtm_lb.csv",
                 mime="text/csv",
-                use_container_width=True
+                width="stretch"
             )
 
             with st.expander("ℹ️ SDTM variable definitions"):
@@ -426,8 +426,8 @@ with tab_lineage:
             # Deep-link directly to the silver_to_gold job lineage view —
             # the most interesting DAG node showing quality assertion facets.
             _job_url = f"{MARQUEZ_UI_URL}/#/lineage/job/{NAMESPACE}/{JOB_SILVER_TO_GOLD}"
-            st.link_button("Open Marquez UI →", MARQUEZ_UI_URL, use_container_width=True)
-            st.link_button("View silver→gold DAG →", _job_url, use_container_width=True)
+            st.link_button("Open Marquez UI →", MARQUEZ_UI_URL, width="stretch")
+            st.link_button("View silver→gold DAG →", _job_url, width="stretch")
 
         b = results["bronze"]
         s = results["silver"]
@@ -476,7 +476,7 @@ with tab_registry:
             "unit": mapping["unit"],
         })
 
-    st.dataframe(registry_data, use_container_width=True)
+    st.dataframe(registry_data, width="stretch")
     st.caption(
         "Demo LOINC master schema (8 codes). This registry drives all quality gates. "
         "Production would use the full Regenstrief LOINC catalog."

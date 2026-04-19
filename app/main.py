@@ -38,9 +38,119 @@ st.caption(
 )
 st.divider()
 
-tab_upload, tab_bronze, tab_silver, tab_gold, tab_lineage, tab_registry = st.tabs(
-    ["📥 Upload", "🥉 Bronze", "🥈 Silver", "🥇 Gold", "🔗 Lineage", "📖 Registry"]
+tab_home, tab_upload, tab_bronze, tab_silver, tab_gold, tab_lineage, tab_registry = st.tabs(
+    ["🏠 Home", "📥 Upload", "🥉 Bronze", "🥈 Silver", "🥇 Gold", "🔗 Lineage", "📖 Registry"]
 )
+
+# ── Tab 0: Home ───────────────────────────────────────────────────────────────
+with tab_home:
+    st.subheader("What are we demonstrating?")
+    st.write(
+        "This app shows how a **clinical data engineering pipeline** handles real-world "
+        "lab data — from raw FHIR delivery through quality-gated Bronze/Silver/Gold layers "
+        "to a regulation-ready CDISC SDTM output — with every transformation tracked as "
+        "data lineage."
+    )
+
+    st.divider()
+
+    st.markdown("### The Story")
+    st.markdown(
+        """
+A pharmaceutical company runs a clinical trial. A lab vendor delivers patient laboratory
+results as **FHIR R4 Bundles** — the healthcare industry's standard for structured clinical data.
+
+The challenge: raw FHIR data is messy. Missing identifiers, invalid dates, unknown LOINC codes,
+values outside reference ranges. Before this data can influence a study decision or a regulatory
+submission, it must be **validated**, **normalized**, and **traceable**.
+
+This pipeline does exactly that — and records a full audit trail so regulators (and your team)
+can answer *"where did this number come from, and did it pass quality checks?"*
+"""
+    )
+
+    st.divider()
+
+    st.markdown("### Architecture: Bronze → Silver → Gold")
+
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.markdown("#### 🥉 Bronze")
+        st.markdown(
+            """
+**Raw ingestion with structural gates**
+
+- Load FHIR Observation resources verbatim
+- Gate 1: non-null patient & observation IDs
+- Gate 2: valid ISO 8601 effective date
+- Gate 3: LOINC code present
+- Failed records → quarantine log
+"""
+        )
+    with col2:
+        st.markdown("#### 🥈 Silver")
+        st.markdown(
+            """
+**Semantic normalization**
+
+- Flatten nested FHIR JSON → columnar format
+- Gate 4: LOINC code resolves in master schema
+- Annotate reference range indicator (LBNRIND)
+  - `H` = above high limit
+  - `L` = below low limit
+  - `N` = within normal range
+  - `UN` = reference range unknown
+- Failed records → quarantine log
+"""
+        )
+    with col3:
+        st.markdown("#### 🥇 Gold")
+        st.markdown(
+            """
+**CDISC SDTM LB output**
+
+- Join Silver against LOINC master schema
+- Produce FDA-ready SDTM LB variable set
+- Stamp each row with `protocol_uri` — a
+  machine-readable link to the protocol
+  assessment that mandated collection
+- Export as CSV for submission
+"""
+        )
+
+    st.divider()
+
+    st.markdown("### Data Lineage")
+    st.markdown(
+        """
+Every pipeline run emits **OpenLineage events** to Marquez — an open-source metadata
+service. The lineage DAG shows:
+
+- Which FHIR bundle was the source
+- How data flowed through each transformation job (`fhir_to_bronze` → `bronze_to_silver` → `silver_to_gold`)
+- Quality assertion results embedded as facets at each step
+- Quarantine counts per layer
+
+This answers the regulator's question: *"Show me the audit trail for observation X."*
+"""
+    )
+
+    st.divider()
+
+    st.markdown("### How to use this demo")
+    st.markdown(
+        """
+1. **Go to the Upload tab** — pick a demo bundle or upload your own FHIR R4 Bundle JSON
+2. **Click Run Pipeline** — watch Bronze → Silver → Gold execute
+3. **Explore the layer tabs** — see which records passed, which were quarantined, and why
+4. **Check the Lineage tab** — view the run summary and open the Marquez DAG
+5. **Browse the Registry tab** — inspect the LOINC master schema driving all quality gates
+
+**Two demo bundles are included:**
+- `clean_bundle.json` — 18 observations, all pass
+- `anomaly_bundle.json` — 20 observations, 2 intentionally broken (missing LOINC, out-of-range value)
+"""
+    )
 
 # ── Tab 1: Upload ─────────────────────────────────────────────────────────────
 with tab_upload:

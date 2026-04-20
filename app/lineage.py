@@ -1,6 +1,5 @@
 import logging
 import os
-import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -19,10 +18,21 @@ from openlineage.client.facet import (
     DataQualityMetricsInputDatasetFacet,
     SchemaDatasetFacet,
     SchemaField,
-    SourceCodeLocationJobFacet,
     ColumnLineageDatasetFacet,
     ColumnLineageDatasetFacetFieldsAdditional,
     ColumnLineageDatasetFacetFieldsAdditionalInputFields,
+    DataSourceDatasetFacet,
+    StorageDatasetFacet,
+    OwnershipDatasetFacet,
+    OwnershipDatasetFacetOwners,
+    DatasetVersionDatasetFacet,
+    DocumentationDatasetFacet,
+    JobTypeJobFacet,
+    OwnershipJobFacet,
+    OwnershipJobFacetOwners,
+    SourceCodeJobFacet,
+    ProcessingEngineRunFacet,
+    NominalTimeRunFacet,
 )
 
 # Add app directory to path for imports
@@ -36,6 +46,16 @@ from constants import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Module-level owner lists — reused across all three pipeline stage events.
+_OWNERS_ENG_TEAM = [
+    OwnershipDatasetFacetOwners(name="Data Engineering Team", type="BUSINESS"),
+    OwnershipDatasetFacetOwners(name="Clinical Data Stewards", type="TECHNICAL"),
+]
+_OWNERS_REGULATORY = [
+    *_OWNERS_ENG_TEAM,
+    OwnershipDatasetFacetOwners(name="Regulatory Affairs", type="BUSINESS"),
+]
 
 
 def _get_client() -> OpenLineageClient | None:
@@ -53,25 +73,33 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def _git_sha() -> str:
+def _get_data_source(bundle_name: str) -> dict:
     """
-    Get git commit SHA. Priority:
-    1. GIT_SHA env var (baked at Docker build time)
-    2. subprocess `git rev-parse --short HEAD` (local dev)
-    3. "unknown" if neither works
-    """
-    # First check env var (Docker build time)
-    sha = os.getenv("GIT_SHA", "")
-    if sha:
-        return sha
+    Detect data source from bundle name for tagging.
 
-    # Fall back to subprocess (local dev)
-    try:
-        return subprocess.check_output(
-            ["git", "rev-parse", "--short", "HEAD"], stderr=subprocess.DEVNULL
-        ).decode().strip()
-    except (subprocess.CalledProcessError, FileNotFoundError, OSError):
-        return "unknown"
+    Returns dict with 'name' and 'uri' for DataSourceDatasetFacet.
+    """
+    # Default to Hospital EHR if no pattern matches
+    source_name = "Hospital EHR"
+    source_uri = "https://hospital.example.com/ehr"
+
+    if "labcorp" in bundle_name.lower():
+        source_name = "LabCorp"
+        source_uri = "https://labcorp.com"
+    elif "quest" in bundle_name.lower():
+        source_name = "Quest Diagnostics"
+        source_uri = "https://questdiagnostics.com"
+    elif "mayo" in bundle_name.lower():
+        source_name = "Mayo Clinic Labs"
+        source_uri = "https://mayocliniclabs.com"
+    elif "research" in bundle_name.lower():
+        source_name = "Clinical Research Database"
+        source_uri = "https://research.example.com"
+
+    return {
+        "name": source_name,
+        "uri": source_uri
+    }
 
 
 def _build_assertions(gate_results: dict) -> list[Assertion]:
@@ -96,13 +124,14 @@ def _build_assertions(gate_results: dict) -> list[Assertion]:
     return assertions
 
 
-def emit_bronze_event(run_id: str, passed: int, quarantined: int, gate_results: dict) -> None:
+def emit_bronze_event(run_id: str, passed: int, quarantined: int, gate_results: dict, bundle_name: str = "fhir_bundle_upload") -> None:
     """Emit OpenLineage event for Bronze layer."""
     client = _get_client()
     if not client:
         return
 
     assertions = _build_assertions(gate_results)
+    data_source = _get_data_source(bundle_name)
 
     # Define input dataset (FHIR bundle upload)
     input_dataset = Dataset(
@@ -114,11 +143,16 @@ def emit_bronze_event(run_id: str, passed: int, quarantined: int, gate_results: 
                 SchemaField(name="type", type="TEXT"),
                 SchemaField(name="id", type="TEXT"),
             ]),
+            "dataSource": DataSourceDatasetFacet(
+                name=data_source["name"],
+                uri=data_source["uri"]
+            ),
             "dataQualityMetrics": DataQualityMetricsInputDatasetFacet(
                 rowCount=1,  # One bundle uploaded
                 bytes=None,
                 columnMetrics={},
             ),
+            "ownership": OwnershipDatasetFacet(owners=_OWNERS_ENG_TEAM),
         },
     )
 
@@ -141,14 +175,46 @@ def emit_bronze_event(run_id: str, passed: int, quarantined: int, gate_results: 
                 bytes=None,
                 columnMetrics={},
             ),
+            "storage": StorageDatasetFacet(
+                storageLayer="duckdb:///data/lineage.duckdb",
+                fileFormat="parquet"
+            ),
+            "ownership": OwnershipDatasetFacet(owners=_OWNERS_ENG_TEAM),
+            "datasetVersion": DatasetVersionDatasetFacet(datasetVersion="1.0.0"),
+            "documentation": DocumentationDatasetFacet(
+                description="Raw FHIR Observation resources ingested verbatim with structural quality gates. Failed records are quarantined."
+            ),
         },
     )
 
     event = RunEvent(
         eventType=RunState.COMPLETE,
         eventTime=_now(),
-        run=Run(runId=run_id),
-        job=Job(namespace=NAMESPACE, name=JOB_FHIR_TO_BRONZE),
+        run=Run(
+            runId=run_id,
+            facets={
+                "processingEngine": ProcessingEngineRunFacet(
+                    version="1.x",
+                    name="DuckDB",
+                    openlineageAdapterVersion="1.x",
+                ),
+                "nominalTime": NominalTimeRunFacet(nominalStartTime=_now()),
+            },
+        ),
+        job=Job(
+            namespace=NAMESPACE,
+            name=JOB_FHIR_TO_BRONZE,
+            facets={
+                "jobType": JobTypeJobFacet(processingType="BATCH", integration="PYTHON", jobType="INGESTION"),
+                "sourceCode": SourceCodeJobFacet(
+                    language="Python",
+                    source="https://github.com/subhopam-das-personal/crg-data-pipeline",
+                ),
+                "ownership": OwnershipJobFacet(owners=[
+                    OwnershipJobFacetOwners(name="Data Engineering Team", type="BUSINESS"),
+                ]),
+            },
+        ),
         producer=PRODUCER,
         inputs=[input_dataset],
         outputs=[output_dataset],
@@ -168,7 +234,8 @@ def emit_silver_event(run_id: str, passed: int, quarantined: int, gate_results: 
 
     assertions = _build_assertions(gate_results)
 
-    # Define input dataset (bronze table) - must match bronze output schema
+    # Define input dataset (bronze table) — schema only; rich facets live on the producer (emit_bronze_event).
+    # Adding storage/ownership here causes Marquez to draw a spurious reverse edge.
     input_dataset = Dataset(
         namespace=NAMESPACE,
         name=BRONZE_TABLE,
@@ -292,6 +359,15 @@ def emit_silver_event(run_id: str, passed: int, quarantined: int, gate_results: 
                     ),
                 }
             ),
+            "storage": StorageDatasetFacet(
+                storageLayer="duckdb:///data/lineage.duckdb",
+                fileFormat="parquet"
+            ),
+            "ownership": OwnershipDatasetFacet(owners=_OWNERS_ENG_TEAM),
+            "datasetVersion": DatasetVersionDatasetFacet(datasetVersion="1.0.0"),
+            "documentation": DocumentationDatasetFacet(
+                description="Flattened and normalized FHIR observations with semantic validation and reference range annotation. Failed records are quarantined."
+            ),
         },
     )
 
@@ -299,7 +375,21 @@ def emit_silver_event(run_id: str, passed: int, quarantined: int, gate_results: 
         eventType=RunState.COMPLETE,
         eventTime=_now(),
         run=Run(runId=run_id),
-        job=Job(namespace=NAMESPACE, name=JOB_BRONZE_TO_SILVER),
+        job=Job(
+            namespace=NAMESPACE,
+            name=JOB_BRONZE_TO_SILVER,
+            facets={
+                "jobType": JobTypeJobFacet(processingType="BATCH", integration="PYTHON", jobType="AGGREGATION"),
+                "sourceCode": SourceCodeJobFacet(
+                    language="Python",
+                    source="https://github.com/subhopam-das-personal/crg-data-pipeline",
+                ),
+                "ownership": OwnershipJobFacet(owners=[
+                    OwnershipJobFacetOwners(name="Data Engineering Team", type="BUSINESS"),
+                    OwnershipJobFacetOwners(name="Clinical Data Stewards", type="TECHNICAL"),
+                ]),
+            },
+        ),
         producer=PRODUCER,
         inputs=[input_dataset],
         outputs=[output_dataset],
@@ -317,9 +407,8 @@ def emit_gold_event(run_id: str, row_count: int) -> None:
     if not client:
         return
 
-    sha = _git_sha()
-
-    # Define input dataset (silver table) - must match silver output schema
+    # Define input dataset (silver table) — schema only; rich facets live on the producer (emit_silver_event).
+    # Adding extra facets here causes Marquez to draw spurious reverse edges.
     input_dataset = Dataset(
         namespace=NAMESPACE,
         name=SILVER_TABLE,
@@ -514,6 +603,15 @@ def emit_gold_event(run_id: str, row_count: int) -> None:
                     ),
                 }
             ),
+            "storage": StorageDatasetFacet(
+                storageLayer="duckdb:///data/lineage.duckdb",
+                fileFormat="parquet"
+            ),
+            "ownership": OwnershipDatasetFacet(owners=_OWNERS_REGULATORY),
+            "datasetVersion": DatasetVersionDatasetFacet(datasetVersion="1.0.0"),
+            "documentation": DocumentationDatasetFacet(
+                description="CDISC SDTM LB (Lab Results) domain ready for regulatory submission. Conforms to FDA LOINC requirements and includes protocol URI traceability."
+            ),
         },
     )
 
@@ -525,10 +623,15 @@ def emit_gold_event(run_id: str, row_count: int) -> None:
             namespace=NAMESPACE,
             name=JOB_SILVER_TO_GOLD,
             facets={
-                "sourceCodeLocation": SourceCodeLocationJobFacet(
-                    type="git",
-                    url="https://github.com/subhopam/data_lineage",
-                )
+                "jobType": JobTypeJobFacet(processingType="BATCH", integration="PYTHON", jobType="TRANSFORMATION"),
+                "sourceCode": SourceCodeJobFacet(
+                    language="Python",
+                    source="https://github.com/subhopam-das-personal/crg-data-pipeline",
+                ),
+                "ownership": OwnershipJobFacet(owners=[
+                    OwnershipJobFacetOwners(name="Data Engineering Team", type="BUSINESS"),
+                    OwnershipJobFacetOwners(name="Regulatory Affairs", type="BUSINESS"),
+                ]),
             },
         ),
         producer=PRODUCER,
@@ -542,12 +645,12 @@ def emit_gold_event(run_id: str, row_count: int) -> None:
         logger.warning(f"Failed to emit Gold lineage event: {e}")
 
 
-def emit_pipeline_events(run_id: str, results: dict) -> None:
+def emit_pipeline_events(run_id: str, results: dict, bundle_name: str = "fhir_bundle_upload") -> None:
     """Emit all three layer events for a completed pipeline run."""
     b = results["bronze"]
     s = results["silver"]
     g = results["gold"]
 
-    emit_bronze_event(run_id, b["passed"], b["quarantined"], b["gate_results"])
+    emit_bronze_event(run_id, b["passed"], b["quarantined"], b["gate_results"], bundle_name)
     emit_silver_event(run_id, s["passed"], s["quarantined"], s["gate_results"])
     emit_gold_event(run_id, g["inserted"])

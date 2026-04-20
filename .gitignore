@@ -60,3 +60,4 @@ docs/
 
 # Poetry lock file (using pip instead)
 poetry.lock
+.gstack/

@@ -48,7 +48,7 @@ if st.session_state.results is None:
                 st.session_state.bundle_json = _bundle_json
                 st.session_state.bundle_name = "anomaly_bundle.json"
                 try:
-                    emit_pipeline_events(_run_id, _results)
+                    emit_pipeline_events(_run_id, _results, "anomaly_bundle.json")
                 except Exception as _e:
                     logger.warning(f"Failed to emit lineage events on startup: {_e}")
             except Exception as _e:
@@ -254,7 +254,7 @@ with tab_upload:
             # Emit lineage events AFTER spinner closes (don't block UI)
             if st.session_state.results:
                 try:
-                    emit_pipeline_events(run_id, results)
+                    emit_pipeline_events(run_id, results, st.session_state.get("bundle_name", "fhir_bundle_upload"))
                 except Exception as e:
                     logger.warning(f"Failed to emit lineage events: {e}")
     else:

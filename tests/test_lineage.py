@@ -88,6 +88,48 @@ def test_data_source_empty_string():
     assert result["name"] == "Hospital EHR"  # falls through to default
 
 
+def test_data_source_returns_slug():
+    from lineage import _get_data_source
+    assert _get_data_source("labcorp_bundle.json")["slug"] == "labcorp"
+
+
+def test_data_source_default_slug():
+    from lineage import _get_data_source
+    assert _get_data_source("unknown.json")["slug"] == "hospital_ehr"
+
+
+def test_data_source_quest_slug():
+    from lineage import _get_data_source
+    assert _get_data_source("quest_results.json")["slug"] == "quest_diagnostics"
+
+
+# ---------------------------------------------------------------------------
+# emit_bronze_event — per-source dataset naming
+# ---------------------------------------------------------------------------
+
+def test_emit_bronze_event_uses_source_slug_as_dataset_name():
+    """Input dataset name should reflect the source — Marquez shows distinct upstream nodes."""
+    captured = []
+    mock_client = _make_client()
+    mock_client.emit = lambda event: captured.append(event)
+    with patch("lineage._get_client", return_value=mock_client):
+        from lineage import emit_bronze_event
+        emit_bronze_event(RUN_ID, 10, 0, GATE_RESULTS_OK, bundle_name="labcorp_samples.json")
+    assert len(captured) == 1
+    assert captured[0].inputs[0].name == "labcorp.fhir_bundle"
+
+
+def test_emit_bronze_event_default_source_dataset_name():
+    """Unknown bundle falls through to hospital_ehr slug."""
+    captured = []
+    mock_client = _make_client()
+    mock_client.emit = lambda event: captured.append(event)
+    with patch("lineage._get_client", return_value=mock_client):
+        from lineage import emit_bronze_event
+        emit_bronze_event(RUN_ID, 10, 0, GATE_RESULTS_OK, bundle_name="unknown.json")
+    assert captured[0].inputs[0].name == "hospital_ehr.fhir_bundle"
+
+
 # ---------------------------------------------------------------------------
 # _build_assertions
 # ---------------------------------------------------------------------------

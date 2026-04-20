@@ -42,7 +42,6 @@ from constants import (
     NAMESPACE, PRODUCER,
     JOB_FHIR_TO_BRONZE, JOB_BRONZE_TO_SILVER, JOB_SILVER_TO_GOLD,
     BRONZE_TABLE, SILVER_TABLE, GOLD_TABLE,
-    INPUT_FHIR_BUNDLE
 )
 
 logger = logging.getLogger(__name__)
@@ -98,7 +97,8 @@ def _get_data_source(bundle_name: str) -> dict:
 
     return {
         "name": source_name,
-        "uri": source_uri
+        "uri": source_uri,
+        "slug": source_name.lower().replace(" ", "_"),
     }
 
 
@@ -133,10 +133,11 @@ def emit_bronze_event(run_id: str, passed: int, quarantined: int, gate_results: 
     assertions = _build_assertions(gate_results)
     data_source = _get_data_source(bundle_name)
 
-    # Define input dataset (FHIR bundle upload)
+    # Define input dataset — named per data source so Marquez shows distinct upstream nodes
+    # (e.g., "labcorp.fhir_bundle" vs "hospital_ehr.fhir_bundle")
     input_dataset = Dataset(
         namespace=NAMESPACE,
-        name=INPUT_FHIR_BUNDLE,
+        name=f"{data_source['slug']}.fhir_bundle",
         facets={
             "schema": SchemaDatasetFacet(fields=[
                 SchemaField(name="resourceType", type="TEXT"),

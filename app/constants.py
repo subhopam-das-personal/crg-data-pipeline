@@ -20,6 +20,3 @@ QUARANTINE_TABLE = "silver.quarantine"
 JOB_FHIR_TO_BRONZE = "fhir_to_bronze"
 JOB_BRONZE_TO_SILVER = "bronze_to_silver"
 JOB_SILVER_TO_GOLD = "silver_to_gold"
-
-# Input dataset names
-INPUT_FHIR_BUNDLE = "fhir_bundle_upload"

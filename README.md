@@ -1,60 +1,196 @@
-# 🧬 Clinical Data Quality, Governance & Lineage
+# 🧬 Clinical Data Lineage for Regulatory Submissions
 
 [![Python](https://img.shields.io/badge/Python-3.12%2B-blue.svg)](https://www.python.org/downloads/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.29%2B-red.svg)](https://streamlit.io/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Docker](https://img.shields.io/badge/Docker-Supported-blue.svg)](https://www.docker.com/)
 
-> End-to-end clinical data engineering pipeline with quality gates, governance, and OpenLineage tracking for CDISC SDTM regulatory submissions.
+> End-to-end clinical data lineage system that solves the regulatory submission puzzle.
 
 ---
 
-## 📋 Overview
+## 📖 The Clinical Trial Story
 
-This pipeline demonstrates three critical clinical data management disciplines in a unified system:
+### Scene: FDA Review, 3 Days Before Submission Deadline
 
-- **🔍 Data Quality Gates** — Structural and ontological validation at each medallion layer (Bronze → Silver → Gold)
-- **📋 Data Governance** — LOINC master schema as the single source of truth, CDISC SDTM LB as regulatory output
-- **🔗 Data Lineage** — OpenLineage events with per-gate assertion facets stored in Marquez, traceable to git commit
+**FDA Reviewer:** *"We see patient ID 1001's glucose value is marked 'HIGH' in your SDTM LB domain. Can you tell us:*
 
-### 🎯 Problem Statement
+1. *Where did this value originally come from?*
+2. *What was the LOINC code?*
+3. *How did you determine it was HIGH?*
+4. *Was any data quarantined during processing?*
+5. *Which code version produced this output?"*
 
-Clinical trial data arrives in fragmented, vendor-specific formats (FHIR, HL7, flat files). To submit to regulatory agencies like the FDA, this data must be transformed into standardized CDISC SDTM domains. This pipeline demonstrates end-to-end transformation from **FHIR R4 laboratory observations → SDTM LB (Lab Results)** with full quality gates and data lineage.
+**Your Team Without This System:** *"We'll need to check with the data engineer, then the lab vendor, then cross-reference with our transformation scripts... this might take a few days."*
+
+**Your Team With This System:** *Click → One-click lineage graph shows:*
+```
+LabCorp FHIR Bundle → Bronze → Silver → Gold
+    "2111-8" → LBTESTCD → LBSTRESN → "H" (from LOINC reference range)
+```
+
+### The Problem This Solves
+
+Clinical trials collect lab data from **multiple vendors** (LabCorp, Quest, Mayo Clinic, hospital EHRs) in **FHIR format**. But regulatory submissions require **CDISC SDTM** — a completely different standard.
+
+The transformation journey is complex:
+- **Source:** FHIR Observation resources with nested JSON
+- **Destination:** SDTM LB domain with 16+ standardized fields
+- **Risk:** Multiple transformation steps = multiple failure points
+
+**Without lineage**, answering regulatory questions requires:
+- Manual traceback through scripts
+- Phone calls to lab vendors
+- Hoping someone remembers which code version ran when
+
+**With lineage**, the complete story is captured automatically:
+- ✅ **Source-level traceability** — Which vendor provided the data
+- ✅ **Column-level transformations** — Exactly how each field was changed
+- ✅ **Quality gate evidence** — What passed vs. what was quarantined
+- ✅ **Code version tracking** — Which git commit produced the output
+- ✅ **Reference range provenance** — How derived values were calculated
+
+### The Regulatory Puzzle Solved
+
+This system implements **ALCOA+** compliance (Attributable, Legible, Contemporaneous, Original, Accurate + Complete, Consistent, Enduring, Available):
+
+| ALCOA+ Principle | How This System Implements It |
+|------------------|-------------------------------|
+| **Attributable** | Every data point traces back to source (LabCorp, Quest, etc.) |
+| **Legible** | Machine-readable lineage events with human-readable descriptions |
+| **Contemporaneous** | Lineage captured at runtime, not retroactively documented |
+| **Original** | Source dataset names reflect actual data providers |
+| **Accurate** | Transformation descriptions match actual code |
+| **Complete** | Quality gates record all failures, not just successes |
+| **Consistent** | Standardized OpenLineage format across all transformations |
+| **Enduring** | Marquez stores lineage persistently for audit trail |
+| **Available** | One-click lineage graph from any pipeline run |
 
 ---
 
-## 🏗️ Architecture
+## 🏗️ Architecture: From FHIR to SDTM
 
 ```
-┌─────────────┐
-│ FHIR Bundle │  (raw EHR data)
-└──────┬──────┘
+┌─────────────────────┐
+│  LabCorp FHIR Bundle│  (raw EHR data from vendor)
+│  "2111-8" glucose   │
+└──────┬──────────────┘
        │
        ▼
 ┌─────────────────────┐  🥉 Bronze Layer
-│ fhir_observations   │  ✅ Structural gates: not-null, ISO 8601, LOINC presence
-│ (raw JSON stored)   │  ⚠️  Quarantine failed records
+│ labcorp.fhir_bundle │  ✅ Structural gates: not-null, ISO 8601, LOINC
+│ (raw JSON stored)   │  ⚠️  Quarantine: malformed records
 └──────┬──────────────┘
        │
        ▼
 ┌─────────────────────┐  🥈 Silver Layer
-│   observations      │  ✅ Semantic gates: LOINC in master schema
-│ (flattened,         │  📊 Reference range annotation (LBNRIND: H/L/N/UN)
-│  normalized)        │  ⚠️  Quarantine failed records
+│  silver.observations │  ✅ Semantic gates: LOINC in master schema
+│ (flattened,         │  📊 Calculate LBNRIND (H/L/N/UN) from ref ranges
+│  normalized)        │  ⚠️  Quarantine: unknown LOINC codes
 └──────┬──────────────┘
        │
        ▼
 ┌─────────────────────┐  🥇 Gold Layer
-│   sdtm_lb           │  ✅ CDISC SDTM LB output format
+│  gold.sdtm_lb       │  ✅ CDISC SDTM LB output format
 │ (regulation-ready)  │  📋 VISITNUM, LBSTRESN, LBSTRESU, LBBLFL, EPOCH
+│                     │  🔗 Protocol URI traceability
 └──────┬──────────────┘
        │
        ▼
-┌─────────────────────┐  🔗 Data Lineage
-│    Marquez          │  ✅ OpenLineage events per layer
-│   (DAG + facets)    │  📊 DataQualityAssertionsFacet with per-gate counts
+┌─────────────────────┐  🔗 Data Lineage (Marquez)
+│  marquez database   │  ✅ OpenLineage events per layer
+│                     │  📊 Column-level transformation descriptions
+│                     │  🔍 Source → Destination traceability
 └─────────────────────┘
 ```
+
+---
+
+## 🎯 Key Features for Regulatory Compliance
+
+### 1️⃣ Per-Source Dataset Naming
+
+Marquez shows distinct upstream nodes for each data provider:
+
+```
+labcorp.fhir_bundle ───┐
+                       ├──→ bronze.fhir_observations ───→ silver.observations ───→ gold.sdtm_lb
+quest_diagnostics.fhir_bundle ───┘
+hospital_ehr.fhir_bundle ────┘
+```
+
+**Regulatory Impact:** *"Patient 1001's glucose came from LabCorp, not Quest. Here's the lineage path."*
+
+### 2️⃣ Column-Level Lineage
+
+Each transformation is documented with **transformation type** and **description**:
+
+```python
+# Example transformations captured in lineage:
+"loinc_code" → "LBTESTCD" 
+  transformationType: "LOOKUP"
+  description: "Mapped from LOINC code to CDISC LB test code"
+
+"effective_datetime" → "LBDTC"
+  transformationType: "IDENTITY"
+  description: "Renamed to CDISC SDTM LB date/time format"
+
+"lbnrind" (derived field)
+  transformationType: "DERIVATION"
+  description: "Calculated reference range indicator (H/L/N/UN) based on LOINC reference ranges"
+  inputFields: ["value_numeric", "loinc_code"]
+```
+
+**Regulatory Impact:** *"The HIGH flag came from LOINC reference ranges (70-105 mg/dL), not manual entry."*
+
+### 3️⃣ Quality Gate Evidence
+
+Each pipeline run records **data quality assertions**:
+
+```json
+{
+  "dataQualityAssertions": {
+    "assertions": [
+      {
+        "assertion": "schema_check",
+        "success": true,
+        "column": null
+      },
+      {
+        "assertion": "range_check",
+        "success": false,
+        "column": null
+      }
+    ]
+  }
+}
+```
+
+**Regulatory Impact:** *"We received 10 LabCorp records. 8 passed quality gates, 2 were quarantined due to missing LOINC codes. Here are the quarantine logs."*
+
+### 4️⃣ Protocol URI Traceability
+
+The Gold layer includes a **protocol URI** linking LOINC codes to study protocol:
+
+```python
+"protocol_uri": "https://protocol.example.com/study/12345/loinc/2111-8"
+```
+
+**Regulatory Impact:** *"This LOINC code is part of the protocol's glucose monitoring requirement. Here's the protocol specification."*
+
+### 5️⃣ Git Commit Traceability
+
+When deployed via Docker, the **git commit SHA** is baked into lineage events:
+
+```python
+"sourceCode": {
+  "language": "Python",
+  "source": "https://github.com/subhopam-das-personal/crg-data-pipeline"
+}
+# GIT_SHA available in container metadata
+```
+
+**Regulatory Impact:** *"This output was produced by commit 8d84c75. Here's the exact code that ran."*
 
 ---
 
@@ -107,77 +243,13 @@ pytest
 **Try the live demo:** https://ravishing-learning-production-042f.up.railway.app/
 
 The live demo showcases all features:
-- 🏠 **Home Tab** — Architecture overview and storytelling approach
+- 🏠 **Home Tab** — Architecture overview and clinical trial story
 - 📥 **Upload Tab** — Load FHIR bundles or use demo data
 - 🥉 **Bronze Tab** — Quality gates and quarantine tracking
 - 🥈 **Silver Tab** — Normalized data with reference range indicators
 - 🥇 **Gold Tab** — CDISC SDTM LB output with download
 - 🔗 **Lineage Tab** — Data provenance and Marquez integration
 - 📖 **Registry Tab** — LOINC master schema inspection
-
----
-
-## 🔍 What to Look For in the Lineage Data
-
-When evaluating this demo for clinical data governance, pay attention to these key aspects:
-
-### 1️⃣ Quality Gate Assertions
-
-Each transformation layer records **data quality assertions** showing:
-- ✅ **Total records processed** vs. **records passed** vs. **records quarantined**
-- ❌ **Specific gate failures** (e.g., "missing LOINC code", "invalid date format")
-- 📋 **Quarantine reasons** for each failed record
-
-> **🎯 Why this matters:** Regulators need to see that bad data was caught and handled appropriately, not silently dropped or corrupted.
-
-### 2️⃣ End-to-End Traceability
-
-The lineage DAG shows the complete journey from raw FHIR Bundle to SDTM LB output:
-- 📥 **Source:** Which FHIR bundle was the input (with git commit SHA if running in Docker)
-- 🔧 **Transformations:** All jobs that touched the data (`fhir_to_bronze` → `bronze_to_silver` → `silver_to_gold`)
-- 📤 **Output:** Final SDTM LB records ready for submission
-
-> **🎯 Why this matters:** When a regulator asks "Where did this value come from?" you can trace it back through every transformation step.
-
-### 3️⃣ Data Quality Metrics Embedded in Lineage
-
-OpenLineage events include **`dataQualityAssertions`** facets with per-gate statistics:
-
-```json
-{
-  "dataQualityAssertions": {
-    "totalRows": 18,
-    "passedRows": 18,
-    "failedRows": 0,
-    "assertions": [
-      {"name": "gate_1_non_null_ids", "passed": 18, "failed": 0},
-      {"name": "gate_2_valid_dates", "passed": 18, "failed": 0},
-      {"name": "gate_3_loinc_present", "passed": 18, "failed": 0}
-    ]
-  }
-}
-```
-
-> **🎯 Why this matters:** Quality metrics are part of the lineage record, not separate reports. This ensures quality data can't be separated from the data it describes.
-
-### 4️⃣ Regulatory Audit Trail
-
-When Marquez is running, each pipeline run includes:
-- 🆔 **Run ID:** Unique identifier for this execution
-- 🔨 **Job names:** Clear, descriptive names for each transformation
-- 📊 **Input/output datasets:** Exact data sets at each stage
-- 📋 **Facets:** Additional metadata (quality assertions, source code location, schema)
-
-> **🎯 Why this matters:** 21 CFR Part 11 requires complete audit trails. This lineage provides machine-readable evidence of every data transformation.
-
-### 5️⃣ Schema Evolution Tracking
-
-The LOINC Registry tab shows the master schema that drives all quality gates:
-- 🧬 **LOINC codes** that are allowed (currently 8 demo codes)
-- 📏 **Units** and **reference ranges** for each code
-- 🔗 **Protocol URI** linking to the regulatory requirement
-
-> **🎯 Why this matters:** When the master schema changes, lineage shows which pipeline runs used which schema version—critical for reproducibility.
 
 ---
 
@@ -288,27 +360,6 @@ docker run -p 8501:8501 \
 
 ---
 
-## 🔄 Pipeline Workflow
-
-```
-FHIR Bundle (JSON)
-    ↓
-[Structural Validation]
-    ├─ ✅ Pass → fhir_observations table
-    └─ ❌ Fail → quarantine log
-    ↓
-[Semantic Normalization]
-    ├─ ✅ Pass → observations table
-    └─ ❌ Fail → quarantine log
-    ↓
-[CDISC SDTM Transformation]
-    └─ ✅ → sdtm_lb table (CSV export)
-```
-
-**Each step emits OpenLineage events** with quality assertion facets.
-
----
-
 ## ⚠️ Notes & Limitations
 
 - **SDTM LB output is a demo prototype.** Production requires:
@@ -323,10 +374,12 @@ FHIR Bundle (JSON)
 ## 🎯 Current Scope
 
 - ✅ Single-patient FHIR bundles
+- ✅ Per-source dataset naming (labcorp.fhir_bundle, quest_diagnostics.fhir_bundle, etc.)
 - ✅ 8 LOINC codes (demo master schema)
 - ✅ Medallion architecture (Bronze → Silver → Gold)
 - ✅ Quality gates at each layer
 - ✅ OpenLineage + Marquez data lineage
+- ✅ Column-level transformation tracking
 - ✅ Streamlit UI for demo
 
 ---
